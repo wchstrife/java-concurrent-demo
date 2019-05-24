@@ -1,9 +1,13 @@
 package lock;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+/**
+ * 聚合同步器实现自定义互斥锁
+ */
 public class Mutex implements Lock {
 
     // 静态内部类，自定义同步器
@@ -44,6 +48,36 @@ public class Mutex implements Lock {
         }
     }
 
-    // 将Lock接口中的方法实现，代理到内部聚合的同步器Sync的方法上
-    //TODO
+    // 实现Lock接口中的实现时，需要代理到内部聚合的同步器Sync的方法上，或者间接的模板方法调用重写的方法
+    private final Sync sync = new Sync();
+
+    @Override
+    public void lock() {
+        sync.acquire(1);    // AQS模板方法，底层调用重写的tryAcquire(int arg)
+    }
+
+    @Override
+    public void lockInterruptibly() throws InterruptedException {   // AQS模板方法，底层在lock的基础上会响应中断
+        sync.acquireInterruptibly(1);
+    }
+
+    @Override
+    public boolean tryLock() {
+        return sync.tryAcquire(1);  // 直接调用重写的tryAcquire(int arg)
+    }
+
+    @Override
+    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        return sync.tryAcquireNanos(1, unit.toNanos(time));     // AQS模板方法
+    }
+
+    @Override
+    public void unlock() {
+        sync.release(1); // AQS模板类，底层调用tryRelease
+    }
+
+    @Override
+    public Condition newCondition() {
+        return sync.newCondition();
+    }
 }
